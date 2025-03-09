@@ -73,7 +73,7 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
+                    if pline[0] == '{' and pline[-1] == '}'\
                             and type(eval(pline)) is dict:
                         _args = pline
                     else:
@@ -82,7 +82,7 @@ class HBNBCommand(cmd.Cmd):
             line = ' '.join([_cmd, _cls, _id, _args])
 
         except Exception as mess:
-            pass
+            print(f"Error in precmd: {mess}")
         finally:
             return line
 
@@ -113,18 +113,48 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
+    def parse_line(self, value):
+        """Helper method to parse values correctly."""
+
+        if value.startswith('"') and value.endswith('"'):
+            return value[1:-1].replace('_', ' ')
+        elif '.' in value:
+            try:
+                return float(value)
+            except ValueError:
+                pass
+        try:
+            return int(value)
+        except ValueError:
+            return value
+
     def do_create(self, args):
-        """ Create an object of any class"""
+        """ Usage: create <Class name> <key1>="<value1>" <key2>="<value2"> ...
+        Allows object creation with given keys/values and its id
+        """
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+
+        pline = args.split()
+
+        if len(pline) == 0:
+            return
+
+        elif pline[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
+
+        new_instance = HBNBCommand.classes[pline[0]]()
+
+        for param in pline[1:]: 
+            if '=' in param:
+                key, value = param.split("=", 1)
+                value = self.parse_line(value)
+                setattr(new_instance, key, value)
+
+        new_instance.save()
         print(new_instance.id)
-        storage.save()
 
     def help_create(self):
         """ Help information for the create method """
